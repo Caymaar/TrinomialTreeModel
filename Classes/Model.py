@@ -2,7 +2,6 @@ import numpy as np
 import math
 import pandas as pd
 import matplotlib.pyplot as plt
-import plotly.graph_objects as go
 from scipy import stats as sps
 from Classes.Market import Market
 from Classes.Option import Option
