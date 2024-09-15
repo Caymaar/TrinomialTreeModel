@@ -40,7 +40,7 @@ with c_factor:
         allow_factor = st.checkbox('Allowing factor')
 
     if allow_factor:
-        factor = st.slider('Factor', 0, 5, 2)
+        factor = st.slider('Factor', -5.00, 5.00, 0.00)
         with col2:
             st.write(f"Le facteur sélectionné est : {factor}")
     else:
@@ -54,7 +54,7 @@ with c_threshold:
         allow_threshold = st.checkbox('Allow threshold')
 
     if allow_threshold:
-        decimal_places = st.slider('Nombre de chiffres après la virgule', 4, 10, 7)
+        decimal_places = st.slider('Nombre de chiffres après la virgule', 2, 10, 7)
         threshold = round(1 / 10**decimal_places, decimal_places)
         with col2:
             st.write(f"Le threshold sélectionné est : {threshold}")
