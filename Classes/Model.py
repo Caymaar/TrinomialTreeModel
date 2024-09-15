@@ -30,8 +30,6 @@ class TrinomialTreeModel(Market, Option):
         Option.__init__(self, K, T, option_type, option_style)
         self.N = N
 
-        print(self.N)
-
     def get_deltaT(self, factor=0):
         exp_factors = np.exp(np.linspace(0, factor, self.N))  # Exponential scaling factors
         self.deltaT_array = exp_factors / np.sum(exp_factors) * self.T  # Normalize to make sure the sum equals T
@@ -218,3 +216,10 @@ class TrinomialTreeModel(Market, Option):
 
         # Display the plot
         return plt
+    
+    def get_number_of_nodes(self):
+        """
+        Returns the total number of nodes in the trinomial tree.
+        """
+        return sum(1 for step in self.tree for node in step if node is not None)
+    
