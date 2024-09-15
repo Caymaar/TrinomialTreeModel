@@ -18,7 +18,7 @@ rate = st.sidebar.number_input('Taux d\'intérêt sans risque (r)', value=0.05)
 sigma = st.sidebar.number_input('Volatilité de l\'actif sous-jacent (sigma)', value=0.2)
 N = st.sidebar.number_input('Nombre de périodes (N)', value=100)
 dividend = st.sidebar.number_input('Dividende attendu (dividend)', value=0.0)
-ex_div_date = st.sidebar.number_input('Date ex-dividende (ex_div_date)', value=100000.0)
+ex_div_date = st.sidebar.number_input('Date ex-dividende (ex_div_date)', value=0.40)
 
 
 # Créer deux colonnes
