@@ -1,0 +1,256 @@
+import math
+from functools import cache
+from Classes.Model import TrinomialTreeModelOld
+import numpy as np
+from Classes.Market import Market
+from Classes.Option import Option
+
+
+class Node:
+    def __init__(self, value, step, tree):
+
+        self.value = value
+        self.step = step
+
+        self.tree = tree
+        self.cum_prob = 0.0
+        self.option_price = 0.0
+
+        self.up_neighbor = None
+        self.down_neighbor = None
+        self.backward_neighbor = None
+
+        self.forward_up_neighbor = None
+        self.forward_mid_neighbor = None
+        self.forward_down_neighbor = None
+
+        self.prob_forward_up_neighbor = None
+        self.prob_forward_mid_neighbor = None
+        self.prob_forward_down_neighbor = None
+
+    def create_forward_nodes(self):
+
+        deltaT, alpha = self.get_deltaT_alpha()
+
+        self.forward_mid_neighbor = Node(self.value * math.exp(self.tree.rate * deltaT) - self.tree.dividend_value(self.step), self.step + 1, self.tree)
+        self.forward_mid_neighbor.backward_neighbor = self
+
+        self.forward_up_neighbor = Node(self.forward_mid_neighbor.value * alpha, self.step + 1, self.tree)
+        self.forward_mid_neighbor.up_neighbor = self.forward_up_neighbor
+        self.forward_mid_neighbor.up_neighbor.down_neighbor = self.forward_mid_neighbor
+        
+        self.forward_down_neighbor = Node(self.forward_mid_neighbor.value / alpha, self.step + 1, self.tree)
+        self.forward_mid_neighbor.down_neighbor = self.forward_down_neighbor
+        self.forward_mid_neighbor.down_neighbor.up_neighbor = self.forward_mid_neighbor
+
+        self.compute_probabilities()
+
+    def generate_upper_neighbors(self, next_forward_up_node):
+
+        deltaT, alpha = self.get_deltaT_alpha()
+
+        trunc = self
+
+        while self.up_neighbor is not None:
+
+            actual_forward_up_node = next_forward_up_node
+
+            actual_forward_up_node.up_neighbor = Node(actual_forward_up_node.value * alpha, self.step + 1, self.tree)
+            actual_forward_up_node.up_neighbor.down_neighbor = self
+            
+            supposed_mid_for_up_node_value = self.up_neighbor.value * math.exp(self.tree.rate * deltaT) - self.tree.dividend_value(self.step)
+
+            if supposed_mid_for_up_node_value < actual_forward_up_node.value * (1 + alpha) / 2 and supposed_mid_for_up_node_value > actual_forward_up_node.value * (1 + 1 / alpha) / 2:
+                
+                self.up_neighbor.forward_down_neighbor = actual_forward_up_node.down_neighbor
+                self.up_neighbor.forward_mid_neighbor = actual_forward_up_node
+                self.up_neighbor.forward_up_neighbor = actual_forward_up_node.up_neighbor
+
+                self.up_neighbor.compute_probabilities()
+
+                self = self.up_neighbor
+
+            next_forward_up_node = actual_forward_up_node.up_neighbor
+
+        self = trunc
+
+    def generate_lower_neighbors(self, next_forward_down_node):
+
+        deltaT, alpha = self.get_deltaT_alpha()
+
+        trunc = self
+
+        while self.down_neighbor is not None:
+            
+            actual_forward_down_node = next_forward_down_node
+
+            actual_forward_down_node.down_neighbor = Node(actual_forward_down_node.value / alpha, self.step + 1, self.tree)
+            actual_forward_down_node.down_neighbor.up_neighbor = self
+            
+            supposed_mid_for_down_node_value = self.down_neighbor.value * math.exp(self.tree.rate * deltaT) - self.tree.dividend_value(self.step)
+
+            if supposed_mid_for_down_node_value < actual_forward_down_node.value * (1 + alpha) / 2 and supposed_mid_for_down_node_value > actual_forward_down_node.value * (1 + 1 / alpha) / 2:
+                
+                self.down_neighbor.forward_down_neighbor = actual_forward_down_node.down_neighbor
+                self.down_neighbor.forward_mid_neighbor = actual_forward_down_node
+                self.down_neighbor.forward_up_neighbor = actual_forward_down_node.up_neighbor
+                
+                self.down_neighbor.compute_probabilities()
+        
+                self = self.down_neighbor
+
+            next_forward_down_node = actual_forward_down_node.down_neighbor
+
+        self = trunc
+
+    def compute_option_price(self):
+
+        print(self.option_price)
+        discount = np.exp(-self.tree.rate * self.tree.deltaT_array[self.step])
+        
+        if self.forward_up_neighbor is not None:
+            self.forward_up_neighbor.payoff(self.tree.K, self.tree.option_type)
+            value = self.forward_up_neighbor.option_price
+            self.option_price += value * self.prob_forward_up_neighbor
+        print(self.option_price)
+        if self.forward_mid_neighbor is not None:
+            self.forward_mid_neighbor.payoff(self.tree.K, self.tree.option_type)
+            value = self.forward_mid_neighbor.option_price
+            self.option_price += value * self.prob_forward_mid_neighbor
+        print(self.option_price)
+        if self.forward_down_neighbor is not None:
+            self.forward_down_neighbor.payoff(self.tree.K, self.tree.option_type)
+            value = self.forward_down_neighbor.option_price
+            self.option_price += value * self.prob_forward_down_neighbor
+        print(self.option_price)
+
+        self.option_price *= discount
+        print(self.option_price)
+        
+    def payoff(self, K, option_type):
+
+        if option_type == "call":
+            self.option_price = max(self.value - K, 0)
+        else:
+            self.option_price = max(K - self.value, 0)
+
+    def compute_probabilities(self):
+
+        deltaT, alpha = self.get_deltaT_alpha()
+
+        esp = self.value * math.exp(self.tree.rate * deltaT) - self.tree.dividend_value(self.step)
+        var = self.value ** (2) * math.exp(2 * self.tree.rate * deltaT) * (math.exp(self.tree.sigma ** 2 * deltaT) - 1)
+
+        down_prob = (self.forward_mid_neighbor.value ** (-2) * (var + esp ** 2) - 1 - (alpha + 1) * (esp / self.forward_mid_neighbor.value - 1)) / ((1 - alpha) * (alpha ** (-2) - 1))
+        up_prob = (esp / self.forward_mid_neighbor.value - 1 - (1 / alpha - 1) * down_prob) / (alpha - 1)
+        mid_prob = 1 - up_prob - down_prob
+
+        self.prob_forward_down_neighbor = down_prob
+        self.prob_forward_up_neighbor = up_prob
+        self.prob_forward_mid_neighbor = mid_prob
+
+        if self.forward_up_neighbor is not None:
+            self.forward_up_neighbor.cum_prob += self.cum_prob * self.prob_forward_up_neighbor
+
+        if self.forward_mid_neighbor is not None:
+            self.forward_mid_neighbor.cum_prob += self.cum_prob * self.prob_forward_mid_neighbor
+
+        if self.forward_down_neighbor is not None:
+            self.forward_down_neighbor.cum_prob += self.cum_prob * self.prob_forward_down_neighbor
+
+    def get_deltaT_alpha(self):
+
+        deltaT = self.tree.deltaT_array[self.step]
+        alpha = math.exp(self.tree.sigma * math.sqrt(3 * deltaT))
+        return deltaT, alpha
+
+    def __repr__(self):
+        return f"Node(value={self.value:.2f}, step={self.step}, option_price={self.option_price:.2f}, cum_prob={self.cum_prob:.5f})"
+
+class TrinomialTreeModel(Market, Option):
+    
+    def __init__(self, S0, rate, sigma, K, T, option_type, option_style, N, dividend=0.0, ex_div_date=None):
+        Market.__init__(self, S0, rate, sigma, dividend, ex_div_date)
+        Option.__init__(self, K, T, option_type, option_style)
+        self.N = N
+        self.root = Node(S0, 0, self)
+        self.root.cum_prob = 1.0
+
+    def get_deltaT(self, factor=0):
+        exp_factors = np.exp(np.linspace(0, factor, self.N))  # Exponential scaling factors
+        self.deltaT_array = exp_factors / np.sum(exp_factors) * self.T  # Normalize to make sure the sum equals T
+
+    def dividend_value(self, step):
+        if self.dividend_step == step:
+            return self.dividend
+        return 0.0
+
+    def build_tree(self, factor=0):
+
+        self.get_deltaT(factor)
+        self.dividend_step = math.ceil(self.ex_div_date * self.N)
+
+        # root node
+        trunc = self.root
+
+        # Construire l'arbre trinomial
+        for step in range(0, self.N, 1):  # Parcours de chaque niveau
+
+            trunc.create_forward_nodes()
+
+            trunc.generate_upper_neighbors(trunc.forward_mid_neighbor.up_neighbor)
+            trunc.generate_lower_neighbors(trunc.forward_mid_neighbor.down_neighbor)
+
+            trunc = trunc.forward_mid_neighbor
+                
+    def compute_payoff_and_return_last_trunc(self):
+
+        trunc = self.root
+
+        while trunc.forward_mid_neighbor is not None:
+            trunc = trunc.forward_mid_neighbor
+
+        last_node = trunc
+
+        trunc.payoff(self.K, self.option_type)
+
+        while last_node.up_neighbor is not None:
+            last_node = last_node.up_neighbor
+            last_node.payoff(self.K, self.option_type)
+
+        last_node = trunc
+
+        while last_node.down_neighbor is not None:
+            last_node = last_node.down_neighbor
+            last_node.payoff(self.K, self.option_type)
+
+        return trunc
+    
+    def back_propagation_pricing(self, last_trunc):
+
+        while last_trunc.backward_neighbor is not None:
+            last_trunc = last_trunc.backward_neighbor
+            last_trunc.compute_option_price()
+            print(last_trunc)
+
+            node_to_compute = last_trunc
+
+            while node_to_compute.up_neighbor is not None:
+                node_to_compute = node_to_compute.up_neighbor
+                node_to_compute.compute_option_price()
+                print(node_to_compute)
+
+            node_to_compute = last_trunc
+
+            while node_to_compute.down_neighbor is not None:
+                node_to_compute = node_to_compute.down_neighbor
+                node_to_compute.compute_option_price()
+                print(node_to_compute)
+
+    def calculate_option_price(self):
+
+        last_trunc = self.compute_payoff_and_return_last_trunc()
+
+        self.back_propagation_pricing(last_trunc)
+
+        return self.root.option_price
