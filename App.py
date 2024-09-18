@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 from Classes.Model import TrinomialTreeModel, BlackScholesModel
 from Classes.Market import Market
 from Classes.Option import Option
+from Classes.Node import Node
 from datetime import date
+
 
 st.set_page_config(layout="wide")
 
@@ -40,7 +42,7 @@ with c_factor:
         allow_factor = st.checkbox('Allowing factor')
 
     if allow_factor:
-        factor = st.slider('Factor', -5.00, 5.00, 0.00)
+        factor = st.slider('Factor', 0.00, 0.99, 0.00)
         with col2:
             st.write(f"Le facteur sélectionné est : {factor}")
     else:
@@ -54,7 +56,7 @@ with c_threshold:
         allow_threshold = st.checkbox('Allow threshold')
 
     if allow_threshold:
-        decimal_places = st.slider('Nombre de chiffres après la virgule', 2, 10, 7)
+        decimal_places = st.slider('Nombre de chiffres après la virgule', 2, 50, 10)
         threshold = round(1 / 10**decimal_places, decimal_places)
         with col2:
             st.write(f"Le threshold sélectionné est : {threshold}")
@@ -71,7 +73,7 @@ ttm = TrinomialTreeModel(S0, rate, sigma, K, T, option_type, option_style, N, di
 bsm = BlackScholesModel(S0, rate, sigma, K, T, option_type, option_style)
 
 start_time = pd.Timestamp.now()
-ttm.build_tree(factor)
+ttm.build_tree(factor=factor, threshold=threshold)
 end_time = pd.Timestamp.now()
 
 col1, col2 = st.columns(2)
@@ -80,13 +82,13 @@ with col1:
     st.write(f'{ttm.calculate_option_price():.5f}')
 with col2:
     st.write(f'Prix du modèle Black-Scholes (Européenne sans dividende) :')
-    st.write(f'{bsm.calculate_option_price():.5f}')
+    st.write(f'{bsm.option_price():.5f}')
 
 st.write('Graphique')
-st.pyplot(ttm.visualize_tree(threshold=threshold))
+st.pyplot(ttm.visualize_tree())
 
 time_diff_ms = (end_time - start_time).total_seconds() * 1000
 
 st.write(f"Temps d'exécution : {time_diff_ms/1000:.5f} s")
 st.write(f"Temps d'exécution par étape : {time_diff_ms/N:.5f} ms")
-st.write(f"Temps d'exécution par nœud : {time_diff_ms/ttm.get_number_of_nodes():.5f} ms")
+st.write(f"Temps d'exécution par nœud : {time_diff_ms/ttm.number_of_nodes:.5f} ms")
