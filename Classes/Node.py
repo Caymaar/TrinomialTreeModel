@@ -62,7 +62,7 @@ class Node:
 
                 self.up_neighbor.compute_probabilities()
 
-                if self.up_neighbor.forward_up_neighbor.cum_prob < self.tree.threshold:
+                if self.up_neighbor.forward_up_neighbor.cum_prob < self.tree.threshold and self.up_neighbor.up_neighbor is None:   
                     self.up_neighbor.forward_up_neighbor = None
                     actual_forward_up_node.up_neighbor = None
 
@@ -95,7 +95,7 @@ class Node:
                 
                 self.down_neighbor.compute_probabilities()
                 
-                if self.down_neighbor.forward_down_neighbor.cum_prob < self.tree.threshold:
+                if self.down_neighbor.forward_down_neighbor.cum_prob < self.tree.threshold and self.down_neighbor.down_neighbor is None:
                     self.down_neighbor.forward_down_neighbor = None
                     actual_forward_down_node.down_neighbor = None
 
