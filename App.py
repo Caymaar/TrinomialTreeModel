@@ -1,11 +1,9 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from Classes.Model import TrinomialTreeModel, BlackScholesModel
+from Classes.Tree import Tree
+from Classes.BlackScholes import BlackScholes
 from Classes.Market import Market
 from Classes.Option import Option
-from Classes.Node import Node
 from datetime import date
 
 
@@ -69,26 +67,30 @@ with col1:
 with col2:
     option_style = st.radio('Sélectionnez le style d\'option', ['european', 'american'])
 
-ttm = TrinomialTreeModel(S0, rate, sigma, K, T, option_type, option_style, N, dividend, ex_div_date)
-bsm = BlackScholesModel(S0, rate, sigma, K, T, option_type, option_style)
+market = Market(S0, rate, sigma, dividend, ex_div_date)
+option = Option(K, T, option_type, option_style)
+
+TreeModel = Tree(market, option, N)
+BSModel = BlackScholes(market, option)
 
 start_time = pd.Timestamp.now()
-ttm.build_tree(factor=factor, threshold=threshold)
+TreeModel.build_tree(factor=factor, threshold=threshold)
 end_time = pd.Timestamp.now()
 
 col1, col2 = st.columns(2)
 with col1:
     st.write('Prix du modèle :')
-    st.write(f'{ttm.calculate_option_price():.5f}')
+    st.write(f'{TreeModel.calculate_option_price():.5f}')
 with col2:
     st.write(f'Prix du modèle Black-Scholes (Européenne sans dividende) :')
-    st.write(f'{bsm.option_price():.5f}')
+    st.write(f'{BSModel.option_price():.5f}')
 
-st.write('Graphique')
-st.pyplot(ttm.visualize_tree())
+# Afficher un bouton "Afficher le graphique"
+if st.button('Générer le graphique'):
+    st.pyplot(TreeModel.visualize_tree())
 
 time_diff_ms = (end_time - start_time).total_seconds() * 1000
 
 st.write(f"Temps d'exécution : {time_diff_ms/1000:.5f} s")
 st.write(f"Temps d'exécution par étape : {time_diff_ms/N:.5f} ms")
-st.write(f"Temps d'exécution par nœud : {time_diff_ms/ttm.number_of_nodes:.5f} ms")
+st.write(f"Temps d'exécution par nœud : {time_diff_ms/TreeModel.get_number_of_nodes():.5f} ms")
