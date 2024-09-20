@@ -1,5 +1,4 @@
 import math
-import numpy as np
 
 class Node:
     def __init__(self, value, step, tree):
@@ -7,7 +6,7 @@ class Node:
         self.step = step
 
         self.tree = tree
-        self.option_price = 0.0  # Initialisation explicite de l'attribut privé ici
+        self.option_price = 0.0
 
         self.cum_prob = 0.0
 
@@ -27,7 +26,7 @@ class Node:
 
         deltaT, alpha = self.get_deltaT_alpha()
 
-        self.forward_mid_neighbor = Node(self.value * math.exp(self.tree.rate * deltaT) - self.tree.dividend_value(self.step), self.step + 1, self.tree)
+        self.forward_mid_neighbor = Node(self.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step), self.step + 1, self.tree)
         self.forward_mid_neighbor.backward_neighbor = self
 
         self.forward_up_neighbor = Node(self.forward_mid_neighbor.value * alpha, self.step + 1, self.tree)
@@ -53,7 +52,7 @@ class Node:
             actual_forward_up_node.up_neighbor = Node(actual_forward_up_node.value * alpha, self.step + 1, self.tree)
             actual_forward_up_node.up_neighbor.down_neighbor = actual_forward_up_node
             
-            supposed_mid_for_up_node_value = self.up_neighbor.value * math.exp(self.tree.rate * deltaT) - self.tree.dividend_value(self.step)
+            supposed_mid_for_up_node_value = self.up_neighbor.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step)
 
             if supposed_mid_for_up_node_value < actual_forward_up_node.value * (1 + alpha) / 2 and supposed_mid_for_up_node_value > actual_forward_up_node.value * (1 + 1 / alpha) / 2:
 
@@ -86,7 +85,7 @@ class Node:
             actual_forward_down_node.down_neighbor = Node(actual_forward_down_node.value / alpha, self.step + 1, self.tree)
             actual_forward_down_node.down_neighbor.up_neighbor = actual_forward_down_node
             
-            supposed_mid_for_down_node_value = self.down_neighbor.value * math.exp(self.tree.rate * deltaT) - self.tree.dividend_value(self.step)
+            supposed_mid_for_down_node_value = self.down_neighbor.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step)
 
             if supposed_mid_for_down_node_value <= actual_forward_down_node.value * (1 + alpha) / 2 and supposed_mid_for_down_node_value >= actual_forward_down_node.value * (1 + 1 / alpha) / 2:
                 
@@ -108,25 +107,22 @@ class Node:
 
     def compute_option_price(self):
 
-        discount = np.exp(-self.tree.rate * self.tree.deltaT_array[self.step])
+        discount = math.exp(-self.tree.market.rate * self.tree.deltaT_array[self.step])
 
         option_value = 0.0
 
         if self.forward_up_neighbor is not None:
-            value = self.forward_up_neighbor.option_price
-            option_value += value * self.prob_forward_up_neighbor
+            option_value += self.forward_up_neighbor.option_price * self.prob_forward_up_neighbor
 
         if self.forward_mid_neighbor is not None:
-            value = self.forward_mid_neighbor.option_price
-            option_value += value * self.prob_forward_mid_neighbor
+            option_value += self.forward_mid_neighbor.option_price * self.prob_forward_mid_neighbor
 
         if self.forward_down_neighbor is not None:
-            value = self.forward_down_neighbor.option_price
-            option_value += value * self.prob_forward_down_neighbor
+            option_value += self.forward_down_neighbor.option_price * self.prob_forward_down_neighbor
 
         option_value *= discount
 
-        if self.tree.option_style == "american":
+        if self.tree.option.style == "american":
             self.payoff()
             self.option_price = max(option_value, self.option_price)
         else:
@@ -134,17 +130,17 @@ class Node:
         
     def payoff(self):
 
-        if self.tree.option_type == "call":
-            self.option_price = max(self.value - self.tree.K, 0)
+        if self.tree.option.type == "call":
+            self.option_price = max(self.value - self.tree.option.K, 0)
         else:
-            self.option_price = max(self.tree.K - self.value, 0)
+            self.option_price = max(self.tree.option.K - self.value, 0)
 
     def compute_probabilities(self):
 
         deltaT, alpha = self.get_deltaT_alpha()
 
-        esp = self.value * math.exp(self.tree.rate * deltaT) - self.tree.dividend_value(self.step)
-        var = self.value ** (2) * math.exp(2 * self.tree.rate * deltaT) * (math.exp(self.tree.sigma ** 2 * deltaT) - 1)
+        esp = self.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step)
+        var = self.value ** (2) * math.exp(2 * self.tree.market.rate * deltaT) * (math.exp(self.tree.market.sigma ** 2 * deltaT) - 1)
 
         down_prob = (self.forward_mid_neighbor.value ** (-2) * (var + esp ** 2) - 1 - (alpha + 1) * (esp / self.forward_mid_neighbor.value - 1)) / ((1 - alpha) * (alpha ** (-2) - 1))
         up_prob = (esp / self.forward_mid_neighbor.value - 1 - (1 / alpha - 1) * down_prob) / (alpha - 1)
@@ -166,7 +162,7 @@ class Node:
     def get_deltaT_alpha(self):
 
         deltaT = self.tree.deltaT_array[self.step]
-        alpha = math.exp(self.tree.sigma * math.sqrt(3 * deltaT))
+        alpha = math.exp(self.tree.market.sigma * math.sqrt(3 * deltaT))
         return deltaT, alpha
 
     def __repr__(self):

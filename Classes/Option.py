@@ -1,6 +1,6 @@
 class Option:
-    def __init__(self, K, T, option_type, option_style):
+    def __init__(self, K, T, type, style):
         self.K = K
         self.T = T
-        self.option_type = option_type
-        self.option_style = option_style
+        self.type = type
+        self.style = style
