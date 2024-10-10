@@ -6,3 +6,4 @@ psutil
 kaleido
 plotly
 xlwings
+networkx
