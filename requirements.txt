@@ -1,5 +1,8 @@
 numpy
 pandas
+matplotlib=3.8.2
 scipy
-matplotlib
-streamlit
+psutil
+kaleido
+plotly
+xlwings
