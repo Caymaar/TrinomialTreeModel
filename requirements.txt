@@ -7,3 +7,4 @@ kaleido
 plotly
 xlwings
 networkx
+streamlit_option_menu
