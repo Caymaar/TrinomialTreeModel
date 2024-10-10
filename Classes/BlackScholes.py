@@ -1,5 +1,5 @@
 import numpy as np
-from scipy import stats as sps
+from scipy.stats import norm
 
 class BlackScholes:
 
@@ -7,16 +7,41 @@ class BlackScholes:
         self.market = market
         self.option = option
 
+    def d1(self):
+        return (np.log(self.market.S0 / self.option.K) + (self.market.rate + 0.5 * self.market.sigma ** 2) * self.option.T) / (self.market.sigma * np.sqrt(self.option.T))
+    
+    def d2(self):
+        return self.d1() - self.market.sigma * np.sqrt(self.option.T)
+    
     def option_price(self):
-
-        # Calcul des d1 et d2 avec le sous-jacent ajusté pour les dividendes
-        d1 = (np.log(self.market.S0 / self.option.K) + (self.market.rate + 0.5 * self.market.sigma ** 2) * self.option.T) / (self.market.sigma * np.sqrt(self.option.T))
-        d2 = d1 - self.market.sigma * np.sqrt(self.option.T)
-
-        # Calcul du prix de l'option
         if self.option.type == "call":
-            option_price = self.market.S0 * sps.norm.cdf(d1) - self.option.K * np.exp(-self.market.rate * self.option.T) * sps.norm.cdf(d2)
+            return self.market.S0 * norm.cdf(self.d1()) - self.option.K * np.exp(-self.market.rate * self.option.T) * norm.cdf(self.d2())
         else:  # Option put
-            option_price = self.option.K * np.exp(-self.market.rate * self.option.T) * sps.norm.cdf(-d2) - self.market.S0 * sps.norm.cdf(-d1)
+            return self.option.K * np.exp(-self.market.rate * self.option.T) * norm.cdf(-self.d2()) - self.market.S0 * norm.cdf(-self.d1())
 
-        return option_price
+    def delta(self):
+        if self.option.type == "call":
+            return norm.cdf(self.d1())
+        else:
+            return norm.cdf(self.d1()) - 1
+
+    def gamma(self):
+        return norm.pdf(self.d1()) / (self.market.S0 * self.market.sigma * np.sqrt(self.option.T))
+
+    def theta(self):
+        term1 = - (self.market.S0 * norm.pdf(self.d1()) * self.market.sigma) / (2 * np.sqrt(self.option.T))
+        if self.option.type == "call":
+            term2 = self.market.rate * self.option.K * np.exp(-self.market.rate * self.option.T) * norm.cdf(self.d2())
+            return term1 - term2
+        else:
+            term2 = self.market.rate * self.option.K * np.exp(-self.market.rate * self.option.T) * norm.cdf(-self.d2())
+            return term1 + term2
+
+    def vega(self):
+        return self.market.S0 * norm.pdf(self.d1()) * np.sqrt(self.option.T)
+
+    def rho(self):
+        if self.option.type == "call":
+            return self.option.K * self.option.T * np.exp(-self.market.rate * self.option.T) * norm.cdf(self.d2())
+        else:
+            return -self.option.K * self.option.T * np.exp(-self.market.rate * self.option.T) * norm.cdf(-self.d2())
