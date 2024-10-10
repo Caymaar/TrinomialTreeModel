@@ -318,17 +318,17 @@ elif selected_tab == "Metrics":
     
     
     # Charger les fichiers HTML dans Streamlit
-    components.html(open("/Users/julesmourgues/Documents/Cours/Master Dauphine/VBA/trinomial_app/Graphics/Metrics/fig1.html", "r").read(), height=600)
+    components.html(open("Metrics/fig1.html", "r").read(), height=600)
 
-    components.html(open("/Users/julesmourgues/Documents/Cours/Master Dauphine/VBA/trinomial_app/Graphics/Metrics/fig2.html", "r").read(), height=600)
+    components.html(open("Metrics/fig2.html", "r").read(), height=600)
 
-    components.html(open("/Users/julesmourgues/Documents/Cours/Master Dauphine/VBA/trinomial_app/Graphics/Metrics/fig3.html", "r").read(), height=600)
+    components.html(open("Metrics/fig3.html", "r").read(), height=600)
 
-    components.html(open("/Users/julesmourgues/Documents/Cours/Master Dauphine/VBA/trinomial_app/Graphics/Metrics/fig4.html", "r").read(), height=600)
+    components.html(open("Metrics/fig4.html", "r").read(), height=600)
 
-    components.html(open("/Users/julesmourgues/Documents/Cours/Master Dauphine/VBA/trinomial_app/Graphics/Metrics/fig5.html", "r").read(), height=600)
+    components.html(open("Metrics/fig5.html", "r").read(), height=600)
 
-    components.html(open("/Users/julesmourgues/Documents/Cours/Master Dauphine/VBA/trinomial_app/Graphics/Metrics/fig6.html", "r").read(), height=600)
+    components.html(open("Metrics/fig6.html", "r").read(), height=600)
 
 # Contenu pour l'onglet "Greeks"
 elif selected_tab == "Greeks":
