@@ -67,13 +67,11 @@ class Node:
                 
                 self.up_neighbor.compute_probabilities()
 
-                if self.up_neighbor.forward_up_neighbor.cum_prob < self.tree.threshold and self.up_neighbor.up_neighbor is None:   
+                if self.up_neighbor.forward_up_neighbor.cum_prob < self.tree.threshold and self.up_neighbor.up_neighbor is None:#) or i >= k:   
 
                     self.up_neighbor.monomial()
 
                     actual_forward_up_node.up_neighbor = None
-
-
 
                 self = self.up_neighbor
 
@@ -228,7 +226,7 @@ class Node:
                 current_up_node.up_neighbor.option_price = current_up_node.up_neighbor.tree.option.payoff(current_up_node.up_neighbor.value)
                 current_down_node.down_neighbor.option_price = current_down_node.down_neighbor.tree.option.payoff(current_down_node.down_neighbor.value)
 
-            elif current_up_node.up_neighbor is not None and current_down_node.down_neighbor is not None:
+            elif current_up_node.up_neighbor is not None:
                 
                 expected_mid_value_for_up = current_up_node.up_neighbor.value * math.exp(current_up_node.tree.market.rate * deltaT) - current_up_node.tree.dividend_value(self.step)
                 if expected_mid_value_for_up < actual_forward_up_node.value * (1 + alpha) / 2 and expected_mid_value_for_up > actual_forward_up_node.value * (1 + 1 / alpha) / 2:
@@ -240,6 +238,8 @@ class Node:
                     current_up_node.up_neighbor.delete_old_nodes()
 
                 actual_forward_up_node = actual_forward_up_node.up_neighbor
+
+            elif current_down_node.down_neighbor is not None:
                     
                 expected_mid_value_for_down = current_down_node.down_neighbor.value * math.exp(current_up_node.tree.market.rate * deltaT) - current_down_node.tree.dividend_value(self.step)
                 if expected_mid_value_for_down <= actual_forward_down_node.value * (1 + alpha) / 2 and expected_mid_value_for_down >= actual_forward_down_node.value * (1 + 1 / alpha) / 2:
@@ -263,11 +263,14 @@ class Node:
             self.up_neighbor.forward_mid_neighbor = self.forward_mid_neighbor.up_neighbor
             if self.forward_mid_neighbor.up_neighbor is not None:
                 self.up_neighbor.forward_up_neighbor = self.forward_mid_neighbor.up_neighbor.up_neighbor
+            
         elif direction == 'down':
             if self.forward_mid_neighbor.down_neighbor is not None:
                 self.down_neighbor.forward_down_neighbor = self.forward_mid_neighbor.down_neighbor.down_neighbor
             self.down_neighbor.forward_mid_neighbor = self.forward_mid_neighbor.down_neighbor
             self.down_neighbor.forward_up_neighbor = self.forward_mid_neighbor
+
+        
 
     def delete_old_nodes(self):
 

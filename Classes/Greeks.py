@@ -7,7 +7,14 @@ class OneDimensionalDerivative:
         self.shift = shift
 
     def first_derivative(self, x):
-        return (self.function(x + self.shift) - self.function(x - self.shift)) / (2 * self.shift)
+        print(x + self.shift)
+        test1 = self.function(x + self.shift)
+        print(test1)
+        print(x - self.shift)
+        test2 = self.function(x - self.shift)
+        print(test2)
+        test3 = (test1 - test2) / (2 * self.shift)
+        return test3
 
     def second_derivative(self, x):
         return (self.function(x + self.shift) - 2 * self.function(x) + self.function(x - self.shift)) / (self.shift ** 2)
@@ -21,7 +28,7 @@ class Greeks:
     def option_price_given_S0(self, S0):
         original_S0 = self.tree_model.market.S0
         self.tree_model.market.S0 = S0
-        price = self.tree_model.get_option_price(light_mode=True)
+        price = self.tree_model.get_option_price(light_mode=False, factor=0, threshold=1e-10)
         self.tree_model.market.S0 = original_S0
         return price
 
@@ -41,7 +48,7 @@ class Greeks:
     def option_price_given_T(self, T):
         original_T = self.tree_model.option.T
         self.tree_model.option.T = T
-        price = self.tree_model.get_option_price(light_mode=True)
+        price = self.tree_model.get_option_price(light_mode=False, factor=0, threshold=1e-10)
         self.tree_model.option.T = original_T
         return price
 
@@ -53,7 +60,7 @@ class Greeks:
     def option_price_given_sigma(self, sigma):
         original_sigma = self.tree_model.market.sigma
         self.tree_model.market.sigma = sigma
-        price = self.tree_model.get_option_price(light_mode=True)
+        price = self.tree_model.get_option_price(light_mode=False, factor=0, threshold=1e-10)
         self.tree_model.market.sigma = original_sigma
         return price
 
@@ -65,7 +72,7 @@ class Greeks:
     def option_price_given_rate(self, rate):
         original_rate = self.tree_model.market.rate
         self.tree_model.market.rate = rate
-        price = self.tree_model.get_option_price(light_mode=True)
+        price = self.tree_model.get_option_price(light_mode=False, factor=0, threshold=1e-10)
         self.tree_model.market.rate = original_rate
         return price
 
