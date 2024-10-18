@@ -4,6 +4,7 @@ from Classes.Tree import Tree
 from Classes.BlackScholes import BlackScholes
 from Classes.Market import Market
 from Classes.Option import Option
+from Classes.Greeks import Greeks
 from datetime import date
 from streamlit_option_menu import option_menu
 import streamlit.components.v1 as components
@@ -35,6 +36,8 @@ T = (maturity - today).days / 365
 ex_div_date = (dividend_date - today).days / 365
 import streamlit as st
 from streamlit_option_menu import option_menu
+
+status = False
 
 # CSS personnalisé pour centrer les titres
 st.markdown("""
@@ -207,6 +210,7 @@ if selected_tab == "Main":
         option = Option(K, T, option_type, option_style)
 
         TreeModel = Tree(market, option, N)
+        TreeModelGreeks = Tree(market, option, N)
         BSModel = BlackScholes(market, option)
 
         # Bouton qui prend toute la largeur de la colonne
@@ -244,6 +248,16 @@ if selected_tab == "Main":
 
             # Écart entre le prix du modèle d'arbre et le prix de Black-Scholes
             gap_price = abs(price - bsm_price) / bsm_price
+
+            # Supposons que delta, gamma, theta, vega, et rho soient définis ailleurs dans votre code
+            greeks = Greeks(TreeModelGreeks)
+
+            if greeks.tree_model.N >= 1000:
+                greeks.tree_model.N = 1000
+
+            status = True
+
+            delta, gamma, theta, vega, rho = greeks.get_greeks()
         else:
             price = 0
             bsm_price = 0
@@ -290,6 +304,48 @@ if selected_tab == "Main":
 
         # Display the HTML table in the second column
         st.markdown(table_html, unsafe_allow_html=True)
+    
+    if status:
+        # Créer une table HTML pour afficher les valeurs des grecs
+        # Créer une table HTML pour afficher les valeurs des grecs
+        greeks_table_html = f"""
+        <style>
+            .custom-table {{
+                width: 100%;  /* Forcer la table à prendre toute la largeur de la page */
+                border-collapse: collapse;
+            }}
+            .custom-table td {{
+                border: 1px solid #ddd;
+                padding: 8px;
+            }}
+            .custom-table tr:nth-child(even) {{background-color: #f2f2f2;}}
+            .custom-table tr:hover {{background-color: #ddd;}}
+            .custom-table th {{
+                padding-top: 12px;
+                padding-bottom: 12px;
+                text-align: left;
+                background-color: #4CAF50;
+                color: white;
+            }}
+        </style>
+        <table class="custom-table">
+            <tr>
+                <td><strong>Delta</strong></td>
+                <td>{delta:.6f}</td>
+                <td><strong>Gamma</strong></td>
+                <td>{gamma:.6f}</td>
+                <td><strong>Theta</strong></td>
+                <td>{theta:.6f}</td>
+                <td><strong>Vega</strong></td>
+                <td>{vega:.6f}</td>
+                <td><strong>Rho</strong></td>
+                <td>{rho:.6f}</td>
+            </tr>
+        </table>
+        """
+
+        # Afficher la table HTML dans Streamlit
+        st.markdown(greeks_table_html, unsafe_allow_html=True)
 
     if not light_mode and hasattr(TreeModel, 'root'):
         # Injecter du CSS pour centrer le texte
