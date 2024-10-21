@@ -20,14 +20,14 @@ st.title('Trinomial Tree Model')
 st.sidebar.header('Parameters')
 
 st.sidebar.write('Market Parameters')
-S0 = st.sidebar.number_input('Initial price of the underlying asset (S0)', value=100)
-rate = st.sidebar.number_input('Risk-free interest rate (r)', value=0.05)
-sigma = st.sidebar.number_input('Volatility of the underlying asset (sigma)', value=0.2)
+S0 = st.sidebar.number_input('Initial price of the underlying asset (S0)', value=100.0)
+rate = st.sidebar.number_input('Risk-free interest rate (r)', value=0.050)
+sigma = st.sidebar.number_input('Volatility of the underlying asset (sigma)', value=0.200)
 dividend = st.sidebar.number_input('Expected dividend (dividend)', value=0.0)
 dividend_date = st.sidebar.date_input('Select a dividend date', value=date.today() + pd.Timedelta(days=90))
 
 st.sidebar.write('Option Parameters')
-K = st.sidebar.number_input('Option strike price (K)', value=100)
+K = st.sidebar.number_input('Option strike price (K)', value=100.0)
 today = st.sidebar.date_input('Select a date', value=date.today())
 maturity = st.sidebar.date_input('Select an expiration date', value=date.today() + pd.Timedelta(days=365))
 
