@@ -32,16 +32,16 @@ class BlackScholes:
         term1 = - (self.market.S0 * norm.pdf(self.d1()) * self.market.sigma) / (2 * np.sqrt(self.option.T))
         if self.option.type == "call":
             term2 = self.market.rate * self.option.K * np.exp(-self.market.rate * self.option.T) * norm.cdf(self.d2())
-            return term1 - term2
+            return (term1 - term2) / 365
         else:
             term2 = self.market.rate * self.option.K * np.exp(-self.market.rate * self.option.T) * norm.cdf(-self.d2())
-            return term1 + term2
+            return (term1 + term2) / 365
 
     def vega(self):
-        return self.market.S0 * norm.pdf(self.d1()) * np.sqrt(self.option.T)
+        return (self.market.S0 * norm.pdf(self.d1()) * np.sqrt(self.option.T)) / 100
 
     def rho(self):
         if self.option.type == "call":
-            return self.option.K * self.option.T * np.exp(-self.market.rate * self.option.T) * norm.cdf(self.d2())
+            return (self.option.K * self.option.T * np.exp(-self.market.rate * self.option.T) * norm.cdf(self.d2())) / 100
         else:
-            return -self.option.K * self.option.T * np.exp(-self.market.rate * self.option.T) * norm.cdf(-self.d2())
+            return (-self.option.K * self.option.T * np.exp(-self.market.rate * self.option.T) * norm.cdf(-self.d2())) / 100

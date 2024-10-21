@@ -55,7 +55,7 @@ class Greeks:
     def calculate_theta(self):
         derivative = OneDimensionalDerivative(lambda T: self.option_price_given_T(T), self.shift)
         theta = - derivative.first_derivative(self.tree_model.option.T)
-        return theta
+        return theta / 365
 
     def option_price_given_sigma(self, sigma):
         original_sigma = self.tree_model.market.sigma
@@ -67,7 +67,7 @@ class Greeks:
     def calculate_vega(self):
         derivative = OneDimensionalDerivative(lambda sigma: self.option_price_given_sigma(sigma), self.shift)
         vega = derivative.first_derivative(self.tree_model.market.sigma)
-        return vega
+        return vega / 100
 
     def option_price_given_rate(self, rate):
         original_rate = self.tree_model.market.rate
@@ -79,7 +79,7 @@ class Greeks:
     def calculate_rho(self):
         derivative = OneDimensionalDerivative(lambda rate: self.option_price_given_rate(rate), self.shift)
         rho = derivative.first_derivative(self.tree_model.market.rate)
-        return rho
+        return rho / 100
 
     def get_greeks(self):
         delta = self.calculate_delta()

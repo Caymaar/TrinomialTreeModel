@@ -26,7 +26,7 @@ class Node:
 
         deltaT, alpha = self.get_deltaT_alpha()
 
-        self.forward_mid_neighbor = Node(self.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step), self.step + 1, self.tree)
+        self.forward_mid_neighbor = Node(self.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step + 1), self.step + 1, self.tree)
         self.forward_mid_neighbor.backward_neighbor = self
 
         self.forward_up_neighbor = Node(self.forward_mid_neighbor.value * alpha, self.step + 1, self.tree)
@@ -57,9 +57,12 @@ class Node:
             actual_forward_up_node.up_neighbor = Node(actual_forward_up_node.value * alpha, self.step + 1, self.tree)
             actual_forward_up_node.up_neighbor.down_neighbor = actual_forward_up_node
             
-            supposed_mid_for_up_node_value = self.up_neighbor.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step)
+            supposed_mid_for_up_node_value = self.up_neighbor.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step + 1)
 
-            if supposed_mid_for_up_node_value < actual_forward_up_node.value * (1 + alpha) / 2 and supposed_mid_for_up_node_value > actual_forward_up_node.value * (1 + 1 / alpha) / 2:
+            upper_bound = actual_forward_up_node.value * (1 + alpha) / 2
+            lower_bound = actual_forward_up_node.value * (1 + 1 / alpha) / 2
+
+            if supposed_mid_for_up_node_value < upper_bound and supposed_mid_for_up_node_value > lower_bound:
 
                 self.up_neighbor.forward_up_neighbor = actual_forward_up_node.up_neighbor
                 self.up_neighbor.forward_mid_neighbor = actual_forward_up_node
@@ -67,7 +70,7 @@ class Node:
                 
                 self.up_neighbor.compute_probabilities()
 
-                if self.up_neighbor.forward_up_neighbor.cum_prob < self.tree.threshold and self.up_neighbor.up_neighbor is None:#) or i >= k:   
+                if self.up_neighbor.forward_up_neighbor.cum_prob < self.tree.threshold and self.up_neighbor.up_neighbor is None: 
 
                     self.up_neighbor.monomial()
 
@@ -92,10 +95,13 @@ class Node:
             actual_forward_down_node.down_neighbor = Node(actual_forward_down_node.value / alpha, self.step + 1, self.tree)
             actual_forward_down_node.down_neighbor.up_neighbor = actual_forward_down_node
             
-            supposed_mid_for_down_node_value = self.down_neighbor.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step)
+            supposed_mid_for_down_node_value = self.down_neighbor.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step + 1)
 
-            if supposed_mid_for_down_node_value <= actual_forward_down_node.value * (1 + alpha) / 2 and supposed_mid_for_down_node_value >= actual_forward_down_node.value * (1 + 1 / alpha) / 2:
-                
+            upper_bound = actual_forward_down_node.value * (1 + alpha) / 2
+            lower_bound = actual_forward_down_node.value * (1 + 1 / alpha) / 2
+
+            if (supposed_mid_for_down_node_value <= upper_bound and supposed_mid_for_down_node_value >= lower_bound) or supposed_mid_for_down_node_value <= 0:
+
                 self.down_neighbor.forward_up_neighbor = actual_forward_down_node.up_neighbor
                 self.down_neighbor.forward_mid_neighbor = actual_forward_down_node
                 self.down_neighbor.forward_down_neighbor = actual_forward_down_node.down_neighbor
@@ -142,7 +148,7 @@ class Node:
 
         deltaT, alpha = self.get_deltaT_alpha()
 
-        esp = self.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step)
+        esp = self.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step + 1)
         var = self.value ** (2) * math.exp(2 * self.tree.market.rate * deltaT) * (math.exp(self.tree.market.sigma ** 2 * deltaT) - 1)
 
         down_prob = (self.forward_mid_neighbor.value ** (-2) * (var + esp ** 2) - 1 - (alpha + 1) * (esp / self.forward_mid_neighbor.value - 1)) / ((1 - alpha) * (alpha ** (-2) - 1))
@@ -191,7 +197,7 @@ class Node:
 
         deltaT, _ = self.get_deltaT_alpha()
 
-        self.forward_mid_neighbor = Node(self.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step), self.step + 1, self.tree)
+        self.forward_mid_neighbor = Node(self.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step + 1), self.step + 1, self.tree)
         self.forward_mid_neighbor.backward_neighbor = self
 
     def light_generating_neighbors(self, NbSigma=5.63):
@@ -228,7 +234,7 @@ class Node:
 
             elif current_up_node.up_neighbor is not None:
                 
-                expected_mid_value_for_up = current_up_node.up_neighbor.value * math.exp(current_up_node.tree.market.rate * deltaT) - current_up_node.tree.dividend_value(self.step)
+                expected_mid_value_for_up = current_up_node.up_neighbor.value * math.exp(current_up_node.tree.market.rate * deltaT) - current_up_node.tree.dividend_value(self.step + 1)
                 if expected_mid_value_for_up < actual_forward_up_node.value * (1 + alpha) / 2 and expected_mid_value_for_up > actual_forward_up_node.value * (1 + 1 / alpha) / 2:
 
                     current_up_node.update_forward_neighbors(direction='up')
@@ -241,7 +247,7 @@ class Node:
 
             elif current_down_node.down_neighbor is not None:
                     
-                expected_mid_value_for_down = current_down_node.down_neighbor.value * math.exp(current_up_node.tree.market.rate * deltaT) - current_down_node.tree.dividend_value(self.step)
+                expected_mid_value_for_down = current_down_node.down_neighbor.value * math.exp(current_up_node.tree.market.rate * deltaT) - current_down_node.tree.dividend_value(self.step + 1)
                 if expected_mid_value_for_down <= actual_forward_down_node.value * (1 + alpha) / 2 and expected_mid_value_for_down >= actual_forward_down_node.value * (1 + 1 / alpha) / 2:
  
                     current_down_node.update_forward_neighbors(direction='down')
@@ -349,7 +355,7 @@ class Node:
 
             elif self.down_neighbor is not None:
 
-                expected_mid_value = self.down_neighbor.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step)
+                expected_mid_value = self.down_neighbor.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step + 1)
                 if expected_mid_value <= self.forward_mid_neighbor.down_neighbor.value * (1 + alpha) / 2 and expected_mid_value >= self.forward_mid_neighbor.down_neighbor.value * (1 + 1 / alpha) / 2:
  
                     self.update_forward_neighbors(direction='down')
