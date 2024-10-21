@@ -207,7 +207,7 @@ if selected_tab == "Main":
         N = st.number_input('Number of periods (N)', value=100)
 
         market = Market(S0, rate, sigma, dividend, ex_div_date)
-        option = Option(K, T, option_type, option_style)
+        option = Option(K, T, option_type.lower(), option_style.lower())
 
         TreeModel = Tree(market, option, N)
         TreeModelGreeks = Tree(market, option, N)
