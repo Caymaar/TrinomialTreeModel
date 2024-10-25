@@ -5,21 +5,6 @@ Ce projet implémente un modèle d'arbre trinomial pour évaluer les options fin
 
 ## Structure du Projet
 
-Le projet est organisé de la manière suivante :
-
-├── Classes\\n
-    ├── BlackScholes.py\\n
-    ├── Greeks.py\n
-    ├── Market.py\n
-    ├── Metrics.py\n
-    ├── Node.py\n
-    ├── Option.py\n
-    └── Tree.py\n
-├── TrinomialTreeModel.xlsm\n
-├── requirements.txt\n
-├── streamlit_main.py\n
-└── xlwings_main.py\n
-
 ### Détails des Classes
 
 - **BlackScholes.py**: Contient la classe `BlackScholes` qui calcule le prix des options et leurs grecs selon le modèle Black-Scholes.
