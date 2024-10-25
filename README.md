@@ -7,8 +7,8 @@ Ce projet implémente un modèle d'arbre trinomial pour évaluer les options fin
 
 Le projet est organisé de la manière suivante :
 
-├── Classes\n
-    ├── BlackScholes.py\n
+├── Classes\\n
+    ├── BlackScholes.py\\n
     ├── Greeks.py\n
     ├── Market.py\n
     ├── Metrics.py\n
