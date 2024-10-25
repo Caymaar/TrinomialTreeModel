@@ -8,68 +8,104 @@ from Classes.BlackScholes import BlackScholes
 import psutil
 
 class Metrics:
+    """
+    Classe pour calculer et afficher les métriques liées à un modèle d'arbre pour le pricing d'options.
+    
+    Attributes:
+        tree_model: Instance du modèle d'arbre pour le pricing des options.
+        bsm_model: Instance du modèle Black-Scholes pour comparaison.
+    """
+
     def __init__(self, tree_model):
+        """
+        Initialise la classe avec un modèle d'arbre donné.
+
+        Args:
+            tree_model (Tree): Le modèle d'arbre pour le pricing des options.
+        """
         self.tree_model = tree_model
         self.tree_model.dividend = 0
         self.bsm_model = BlackScholes(tree_model.market, tree_model.option)
 
     def get_metrics(self, light_mode=False, NbSigma=5.63):
+        """
+        Calcule les métriques de performance pour le modèle d'arbre, en fonction du mode léger.
+
+        Args:
+            light_mode (bool): Indique si le mode léger doit être utilisé.
+            NbSigma (float): Paramètre pour la méthode dans le mode léger.
+
+        Returns:
+            tuple: Temps de construction, temps de pricing, temps de construction par nœud, temps de pricing par nœud,
+                   nombre de nœuds, prix de l'option, utilisation mémoire.
+        """
         if light_mode:
             starting_time = pd.Timestamp.now()
             price = self.tree_model.get_option_price(light_mode=True, NbSigma=NbSigma)
             ending_time = pd.Timestamp.now()
 
-            building_time = 0
+            building_time = 0  # Pas de temps de construction en mode léger
             pricing_time = (ending_time - starting_time).total_seconds()
 
-            number_of_nodes = 1
+            number_of_nodes = 1  # Nombre de nœuds est minimal en mode léger
 
             building_time_by_node = 0
             pricing_time_by_node = pricing_time
 
-            memory_usage = psutil.Process().memory_info().rss / (1024 * 1024)  # en Mo
+            memory_usage = psutil.Process().memory_info().rss / (1024 * 1024)  # Utilisation mémoire en Mo
 
         else:
             starting_time = pd.Timestamp.now()
-            self.tree_model.build_tree()  # Assurez-vous que cette méthode est définie dans TrinomialTreeModel
+            self.tree_model.build_tree()  # Construction de l'arbre
             ending_time = pd.Timestamp.now()
 
             building_time = (ending_time - starting_time).total_seconds()
 
-            memory_usage = psutil.Process().memory_info().rss / (1024 * 1024)  # en Mo
+            memory_usage = psutil.Process().memory_info().rss / (1024 * 1024)  # Utilisation mémoire en Mo
 
             starting_time = pd.Timestamp.now()
-            #price = self.tree_model.calculate_option_price()
-            price = self.tree_model.calculate_option_price()
+            price = self.tree_model.calculate_option_price()  # Calcul du prix de l'option
             ending_time = pd.Timestamp.now()
 
             pricing_time = (ending_time - starting_time).total_seconds()
 
-            number_of_nodes = self.tree_model.get_number_of_nodes()
+            number_of_nodes = self.tree_model.get_number_of_nodes()  # Nombre total de nœuds
 
-            building_time_by_node = (building_time) / number_of_nodes
-            pricing_time_by_node = (pricing_time) / number_of_nodes
+            building_time_by_node = building_time / number_of_nodes
+            pricing_time_by_node = pricing_time / number_of_nodes
 
-        return building_time, pricing_time, building_time_by_node, pricing_time_by_node, number_of_nodes, price, memory_usage
+        return (building_time, pricing_time, building_time_by_node, pricing_time_by_node, number_of_nodes, price, memory_usage)
 
     def compute_and_show_metrics(self, N_values, light_mode=False, show=True):
+        """
+        Calcule et affiche les métriques pour différentes valeurs de N (nombre d'étapes).
 
+        Args:
+            N_values (list): Liste des valeurs de N à évaluer.
+            light_mode (bool): Indique si le mode léger doit être utilisé.
+            show (bool): Indique si les graphiques doivent être affichés.
+
+        Returns:
+            tuple: Figures contenant les graphiques si show est False.
+        """
         building_times = []
         pricing_times = []
         building_times_by_node = []
         pricing_times_by_node = []
         number_of_nodes_list = []
         prices = []
-        differences = []
         execution_times = []
         times_by_node = []
         memory_usages = []
-        
+
         for N in N_values:
-            self.tree_model.N = N
+            self.tree_model.N = N  # Met à jour le nombre d'étapes
 
-            building_time, pricing_time, building_time_by_node, pricing_time_by_node, number_of_nodes, price, memory_usage = self.get_metrics(light_mode)
+            # Obtenir les métriques pour le modèle
+            metrics = self.get_metrics(light_mode)
+            building_time, pricing_time, building_time_by_node, pricing_time_by_node, number_of_nodes, price, memory_usage = metrics
 
+            # Stocker les résultats dans les listes
             building_times.append(building_time)
             pricing_times.append(pricing_time)
             building_times_by_node.append(building_time_by_node)
@@ -83,16 +119,13 @@ class Metrics:
         prices = np.array(prices)
         execution_times = np.array(execution_times)
 
-        # Utiliser le prix du modèle Black-Scholes
+        # Utiliser le prix du modèle Black-Scholes pour la comparaison
         bsm_price = self.bsm_model.option_price()
 
         # Calcul de la différence entre le modèle Trinomial et Black-Scholes, multipliée par N
-        differences = []
-        for i, price in enumerate(prices):
-            diff = (price - bsm_price) * N_values[i]
-            differences.append(diff)
+        differences = [(price - bsm_price) * N for price, N in zip(prices, N_values)]
 
-        # Graph 1: Execution time with curves for building time, pricing time, and total execution time
+        # Graph 1: Temps d'exécution avec courbes pour le temps de construction, le temps de pricing et le temps total
         fig1 = go.Figure()
         fig1.add_trace(go.Scatter(x=list(N_values), y=building_times, mode='lines+markers', name='Building Time'))
         fig1.add_trace(go.Scatter(x=list(N_values), y=pricing_times, mode='lines+markers', name='Pricing Time'))
@@ -105,7 +138,7 @@ class Metrics:
             template="plotly_white"
         )
 
-        # Graph 2: Convergence of trinomial model towards Black-Scholes
+        # Graph 2: Convergence du modèle trinomial vers Black-Scholes
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(x=list(N_values), y=prices, mode='lines+markers', name='Trinomial Tree'))
         fig2.add_trace(go.Scatter(x=list(N_values), y=[bsm_price]*len(N_values), mode='lines', name='Black-Scholes'))
@@ -117,7 +150,7 @@ class Metrics:
             template="plotly_white"
         )
 
-        # Graph 3: (Trinomial Value – Black-Scholes Value) x N
+        # Graph 3: (Valeur Trinomial – Valeur Black-Scholes) x N
         fig3 = go.Figure()
         fig3.add_trace(go.Scatter(x=list(N_values), y=differences, mode='lines+markers', name='(Trinomial Value - Black-Scholes Value) x N'))
         fig3.update_layout(
@@ -127,7 +160,7 @@ class Metrics:
             template="plotly_white"
         )
 
-        # Graph 4: Memory usage as a function of N
+        # Graph 4: Utilisation mémoire en fonction de N
         fig4 = go.Figure()
         fig4.add_trace(go.Scatter(x=list(N_values), y=memory_usages, mode='lines+markers', name='Memory Usage'))
         fig4.update_layout(
@@ -138,7 +171,7 @@ class Metrics:
             template="plotly_white"
         )
 
-        # Graph 5: Number of nodes for each N
+        # Graph 5: Nombre de nœuds pour chaque N
         fig5 = go.Figure()
         if not light_mode:
             fig5.add_trace(go.Scatter(x=list(N_values), y=number_of_nodes_list, mode='lines+markers', name='Number of Nodes'))
@@ -149,7 +182,7 @@ class Metrics:
                 template="plotly_white"
             )
 
-        # Graph 6: Time per node for each N
+        # Graph 6: Temps par nœud pour chaque N
         fig6 = go.Figure()
         if not light_mode:
             fig6.add_trace(go.Scatter(x=list(N_values), y=times_by_node, mode='lines+markers', name='Total Time per Node'))
@@ -163,7 +196,7 @@ class Metrics:
                 template="plotly_white"
             )
 
-
+        # Afficher ou retourner les figures selon le paramètre show
         if show:
             fig1.show()
             fig2.show()
@@ -174,12 +207,22 @@ class Metrics:
         else:
             return fig1, fig2, fig3, fig4, fig5, fig6
                 
-                    
     def compute_and_show_sigma_convergence(self, Sigma_values, N_values, show=True):
+        """
+        Calcule et affiche la convergence du modèle trinomial pour différentes valeurs de sigma.
+
+        Args:
+            Sigma_values (list): Liste des valeurs de sigma à évaluer.
+            N_values (list): Liste des valeurs de N à évaluer.
+            show (bool): Indique si les graphiques doivent être affichés.
+
+        Returns:
+            tuple: Figures contenant les graphiques si show est False.
+        """
         convergence_prices = {sigma: [] for sigma in Sigma_values}  # Dictionnaire pour stocker les prix pour chaque sigma
         execution_times = {sigma: [] for sigma in Sigma_values}  # Dictionnaire pour stocker les temps d'exécution pour chaque sigma
         
-        original_N = self.tree_model.N
+        original_N = self.tree_model.N  # Sauvegarder la valeur originale de N
 
         # Parcourir toutes les valeurs de N
         for N in N_values:
@@ -238,9 +281,20 @@ class Metrics:
 
 
     def compute_and_show_factor_convergence(self, Factor_values, N_values, show=True):
-        convergence_prices = {factor: [] for factor in Factor_values}  # Dictionnaire pour stocker les prix pour chaque sigma
+        """
+        Calcule et affiche la convergence du modèle trinomial pour différentes valeurs de facteur.
+
+        Args:
+            Factor_values (list): Liste des valeurs de facteur à évaluer.
+            N_values (list): Liste des valeurs de N à évaluer.
+            show (bool): Indique si les graphiques doivent être affichés.
+
+        Returns:
+            figure: Figure contenant le graphique si show est False.
+        """
+        convergence_prices = {factor: [] for factor in Factor_values}  # Dictionnaire pour stocker les prix pour chaque facteur
         
-        original_N = self.tree_model.N
+        original_N = self.tree_model.N  # Sauvegarder la valeur originale de N
 
         # Parcourir toutes les valeurs de N
         for N in N_values:
@@ -250,7 +304,7 @@ class Metrics:
                 # Obtenir le prix de l'option
                 price = self.tree_model.get_option_price(light_mode=True, factor=factor)
 
-                # Stocker les prix et les temps pour ce N et ce sigma
+                # Stocker les prix pour ce N et ce facteur
                 convergence_prices[factor].append(price)
 
         # Restaurer la valeur originale de N
@@ -259,7 +313,7 @@ class Metrics:
         # Obtenir le prix du modèle Black-Scholes pour comparaison
         bsm_price = self.bsm_model.option_price()
 
-        # Graph 1: Convergence pour différents N et sigma
+        # Graph 1: Convergence pour différents N et facteur
         fig1 = go.Figure()
         for factor in Factor_values:
             fig1.add_trace(go.Scatter(x=list(N_values), y=convergence_prices[factor], mode='lines+markers', name=f'Factor={factor}'))
@@ -268,7 +322,7 @@ class Metrics:
             title="Convergence of Trinomial Model to Black-Scholes for Different Factor and N",
             xaxis_title="N (number of steps in the trinomial tree)",
             yaxis_title="Option Price",
-            legend_title="Sigma Values",
+            legend_title="Factor Values",
             template="plotly_white"
         )
 

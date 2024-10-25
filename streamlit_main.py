@@ -9,8 +9,8 @@ from datetime import date
 from streamlit_option_menu import option_menu
 import streamlit.components.v1 as components
 
+# Configuration de la page
 st.set_page_config(layout="wide")
-
 st.title('Trinomial Tree Model')
 
 ######################
@@ -19,6 +19,7 @@ st.title('Trinomial Tree Model')
 
 st.sidebar.header('Parameters')
 
+# Paramètres du marché
 st.sidebar.write('Market Parameters')
 S0 = st.sidebar.number_input('Initial price of the underlying asset (S0)', value=100.0, format="%.4f")
 rate = st.sidebar.number_input('Risk-free interest rate (r)', value=0.05, format="%.4f")
@@ -26,30 +27,17 @@ sigma = st.sidebar.number_input('Volatility of the underlying asset (sigma)', va
 dividend = st.sidebar.number_input('Expected dividend (dividend)', value=0.0, format="%.4f")
 dividend_date = st.sidebar.date_input('Select a dividend date', value=date.today() + pd.Timedelta(days=90))
 
+# Paramètres de l'option
 st.sidebar.write('Option Parameters')
 K = st.sidebar.number_input('Option strike price (K)', value=100.0, format="%.4f")
 today = st.sidebar.date_input('Select a date', value=date.today())
 maturity = st.sidebar.date_input('Select an expiration date', value=date.today() + pd.Timedelta(days=365))
 
-
+# Calcul de T et ex_div_date
 T = (maturity - today).days / 365
 ex_div_date = (dividend_date - today).days / 365
-import streamlit as st
-from streamlit_option_menu import option_menu
 
-status = False
-
-# CSS personnalisé pour centrer les titres
-st.markdown("""
-    <style>
-    .centered-title {
-        text-align: center;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# Créer un menu horizontal pour les onglets
-# Créer un menu horizontal pour les onglets
+# Menu de navigation
 selected_tab = option_menu(
     menu_title=None,
     options=["Main", "Metrics", "Greeks"],
@@ -59,15 +47,15 @@ selected_tab = option_menu(
     orientation="horizontal",
     styles={
         "container": {"padding": "0!important", "background-color": "transparent"},
-        "icon": {"color": "black", "font-size": "20px"},  # Taille de l'icône réduite
+        "icon": {"color": "black", "font-size": "20px"},
         "nav-link": {
-            "font-size": "20px",  # Taille de la police des étiquettes réduite
+            "font-size": "20px",
             "font-weight": "bold",
             "text-align": "center",
             "margin": "0px",
             "--hover-color": "#eee",
-            "padding": "5px 10px",  # Ajuster le padding pour réduire la taille des boutons
-            "width": "90%",  # Ajuster la largeur pour réduire la taille des boutons
+            "padding": "5px 10px",
+            "width": "90%",
         },
         "nav-link-selected": {"background-color": "#ff9999", "color": "white"},
     },
@@ -78,8 +66,7 @@ st.divider()
 # Contenu pour l'onglet "Main"
 if selected_tab == "Main":
     with st.container():
-
-        # Créer deux colonnes pour les titres et les menus d'options
+        # Colonnes pour les titres et les menus d'options
         col1, col2 = st.columns(2)
         
         with col1:
@@ -124,58 +111,44 @@ if selected_tab == "Main":
                 },
             )
 
-
     # Sélection du modèle
     model = st.selectbox(
         'Select model', 
         ['Trinomial Tree Model', 'Trinomial Tree Model with memory optimization (including threshold, No graphic available)']
     )
 
+    # Options pour le modèle Trinomial Tree Model
     if model == 'Trinomial Tree Model':
         light_mode = False
         
-        # Créer deux colonnes pour Factor et Threshold
+        # Colonnes pour Factor et Threshold
         col1, col2 = st.columns(2)
 
-        # Paramètres du facteur dans la première colonne (col1)
+        # Paramètres du facteur
         with col1:
             with st.expander("Factor"):
                 st.markdown("You can adjust the factor to increase the pace of the tree building process. The factor should be between -1 and 1. 0 means no factor.")
                 allow_factor = st.checkbox('Allowing factor')
-                if allow_factor:
-                    factor = st.slider('Factor', -0.99, 0.99, 0.00)
-                    st.write(f"The selected Factor is : {factor}")
-                else:
-                    factor = 0
+                factor = st.slider('Factor', -0.99, 0.99, 0.00) if allow_factor else 0
 
-        # Paramètres du seuil dans la deuxième colonne (col2)
+        # Paramètres du seuil
         with col2:
             with st.expander("Threshold"):
                 st.markdown("You can adjust the threshold to control the precision of the calculations. The threshold should be close to zero.")
                 allow_threshold = st.checkbox('Allow threshold')
-                if allow_threshold:
-                    decimal_places = st.slider('Number of decimal places', 2, 50, 10)
-                    threshold = round(1 / 10**decimal_places, decimal_places)
-                    st.write(f"The Threshold selected is : {threshold}")
-                else:
-                    threshold = 0 
+                decimal_places = st.slider('Number of decimal places', 2, 50, 10) if allow_threshold else 0
+                threshold = round(1 / 10**decimal_places, decimal_places) if allow_threshold else 0 
 
     else:
         light_mode = True
 
-        # Créer une seule colonne qui occupe toute la largeur pour Factor (col1 fait 100%)
+        # Paramètres du facteur dans la seule colonne
         col1 = st.columns([1])[0]  # Une seule colonne
-
-        # Paramètres du facteur dans la seule colonne (col1)
         with col1:
             with st.expander("Factor"):
                 st.markdown("You can adjust the factor to increase the pace of the tree building process. The factor should be between -1 and 1. 0 means no factor.")
                 allow_factor = st.checkbox('Allowing factor')
-                if allow_factor:
-                    factor = st.slider('Factor', -0.99, 0.99, 0.00)
-                    st.write(f"The selected Factor is : {factor}")
-                else:
-                    factor = 0
+                factor = st.slider('Factor', -0.99, 0.99, 0.00) if allow_factor else 0
 
     # Ajout de CSS personnalisé pour centrer le bouton
     st.markdown("""
@@ -192,7 +165,6 @@ if selected_tab == "Main":
         </style>
         """, unsafe_allow_html=True)
 
-    
     col1, col2 = st.columns(2)
     # Injecter du CSS pour forcer le bouton à prendre toute la largeur
     st.markdown("""
@@ -206,50 +178,42 @@ if selected_tab == "Main":
     with col1:
         N = st.number_input('Number of periods (N)', value=100)
 
+        # Création des modèles
         market = Market(S0, rate, sigma, dividend, ex_div_date)
         option = Option(K, T, option_type.lower(), option_style.lower())
-
         TreeModel = Tree(market, option, N)
         TreeModelGreeks = Tree(market, option, N)
         BSModel = BlackScholes(market, option)
 
-        # Bouton qui prend toute la largeur de la colonne
+        # Bouton pour générer le prix
         if st.button('Generate Price'):
             if light_mode:
-                building_time = 0
-
                 start_time = pd.Timestamp.now()
                 TreeModel.light_build_tree(factor=factor)
-                end_time = pd.Timestamp.now()
-
                 price = TreeModel.root.option_price
-
-                price_time = (end_time - start_time).total_seconds()
+                price_time = (pd.Timestamp.now() - start_time).total_seconds()
+                building_time = 0
 
             else:
                 # Temps de construction de l'arbre
                 start_time = pd.Timestamp.now()
                 TreeModel.build_tree(factor=factor, threshold=threshold)
-                end_time = pd.Timestamp.now()
-
-                building_time = (end_time - start_time).total_seconds()
+                building_time = (pd.Timestamp.now() - start_time).total_seconds()
 
                 # Temps de calcul du prix de l'option
                 start_time = pd.Timestamp.now()
                 price = TreeModel.calculate_option_price()
-                end_time = pd.Timestamp.now()
-
-                price_time = (end_time - start_time).total_seconds()
+                price_time = (pd.Timestamp.now() - start_time).total_seconds()
 
             total_time = building_time + price_time
 
             # Prix de Black-Scholes
             bsm_price = BSModel.option_price()
 
-            # Écart entre le prix du modèle d'arbre et le prix de Black-Scholes
+            # Écart entre les prix
             gap_price = abs(price - bsm_price) / bsm_price
 
-            # Supposons que delta, gamma, theta, vega, et rho soient définis ailleurs dans votre code
+            # Calcul des Greeks
             greeks = Greeks(TreeModelGreeks)
 
             if greeks.tree_model.N >= 1000:
@@ -259,26 +223,11 @@ if selected_tab == "Main":
 
             delta, gamma, theta, vega, rho = greeks.get_greeks()
         else:
-            price = 0
-            bsm_price = 0
-            gap_price = 0
-            building_time = 0
-            price_time = 0
-            total_time = 0
-        st.markdown('</div>', unsafe_allow_html=True)  # Fin du div pour centrer
+            price = bsm_price = gap_price = building_time = price_time = total_time = 0
 
-    # Injecter du CSS pour décaler le tableau vers le bas
-    st.markdown("""
-        <style>
-        .custom-table {
-            margin-top: 24px;  /* Ajustez cette valeur pour déplacer le tableau plus ou moins bas */
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-    # Contenu dans la deuxième colonne (droite) avec le tableau HTML
+    # Table de résultats
     with col2:
-        # Example data for HTML table
+        # Créer une table HTML pour afficher les résultats
         table_html = f"""
         <table class="custom-table" align="right">
         <tr>
@@ -301,17 +250,15 @@ if selected_tab == "Main":
         </tr>
         </table>
         """
-
-        # Display the HTML table in the second column
         st.markdown(table_html, unsafe_allow_html=True)
-    
+
+    # Affichage des Greeks si calculés
     if status:
-        # Créer une table HTML pour afficher les valeurs des grecs
-        # Créer une table HTML pour afficher les valeurs des grecs
+        # Table HTML pour les Greeks
         greeks_table_html = f"""
         <style>
             .custom-table {{
-                width: 100%;  /* Forcer la table à prendre toute la largeur de la page */
+                width: 100%;  /* Prendre toute la largeur */
                 border-collapse: collapse;
             }}
             .custom-table td {{
@@ -343,53 +290,23 @@ if selected_tab == "Main":
             </tr>
         </table>
         """
-
-        # Afficher la table HTML dans Streamlit
         st.markdown(greeks_table_html, unsafe_allow_html=True)
 
+    # Graphique de l'arbre
     if not light_mode and hasattr(TreeModel, 'root'):
-        # Injecter du CSS pour centrer le texte
-        st.markdown("""
-            <style>
-            .center-text {
-                text-align: center;
-                font-size: 20px;
-                font-weight: bold;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-
-        # Graphique de l'arbre
+        st.markdown('<div class="center-text">Tree Chart</div>', unsafe_allow_html=True)
         if N <= 100:
-            st.markdown('<div class="center-text">Tree Chart</div>', unsafe_allow_html=True)
             st.plotly_chart(TreeModel.visualize_tree(show=False))
         else:
             st.warning("The tree is too large to be displayed. Reduce the number of periods (N) to at least 100 to display the chart.")
 
-
-  
-
 # Contenu pour l'onglet "Metrics"
 elif selected_tab == "Metrics":
-    
-    
     # Charger les fichiers HTML dans Streamlit
-    components.html(open("Metrics/fig1.html", "r").read(), height=600)
-
-    components.html(open("Metrics/fig2.html", "r").read(), height=600)
-
-    components.html(open("Metrics/fig3.html", "r").read(), height=600)
-
-    components.html(open("Metrics/fig4.html", "r").read(), height=600)
-
-    components.html(open("Metrics/fig5.html", "r").read(), height=600)
-
-    components.html(open("Metrics/fig6.html", "r").read(), height=600)
+    for i in range(1, 7):
+        components.html(open(f"Metrics/fig{i}.html", "r").read(), height=600)
 
 # Contenu pour l'onglet "Greeks"
 elif selected_tab == "Greeks":
     st.write("Contenu de l'onglet Greeks")
     # Ajoutez ici le contenu spécifique à l'onglet Greeks
-
-
-
