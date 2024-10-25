@@ -7,18 +7,18 @@ Ce projet implémente un modèle d'arbre trinomial pour évaluer les options fin
 
 Le projet est organisé de la manière suivante :
 
-├── Classes
-    ├── BlackScholes.py
-    ├── Greeks.py
-    ├── Market.py
-    ├── Metrics.py
-    ├── Node.py
-    ├── Option.py
-    └── Tree.py
-├── TrinomialTreeModel.xlsm
-├── requirements.txt
-├── streamlit_main.py
-└── xlwings_main.py
+├── Classes\n
+    ├── BlackScholes.py\n
+    ├── Greeks.py\n
+    ├── Market.py\n
+    ├── Metrics.py\n
+    ├── Node.py\n
+    ├── Option.py\n
+    └── Tree.py\n
+├── TrinomialTreeModel.xlsm\n
+├── requirements.txt\n
+├── streamlit_main.py\n
+└── xlwings_main.py\n
 
 ### Détails des Classes
 
@@ -61,7 +61,7 @@ Ouvrez votre classeur Excel et exécutez les fonctions définies dans xlwings_ma
 
 Utilisation
 
-	•	Streamlit : Entrez les paramètres du marché et de l’option dans l’interface utilisateur et cliquez sur “Generate Price” pour calculer le prix de l’option. Les grecs et les métriques seront également affichés.
-	•	Excel : Remplissez les cellules du classeur Excel avec les paramètres appropriés et exécutez les fonctions fournies pour obtenir les prix des options et les grecs.
+- Streamlit : Entrez les paramètres du marché et de l’option dans l’interface utilisateur et cliquez sur “Generate Price” pour calculer le prix de l’option. Les grecs et les métriques seront également affichés.
+- Excel : Remplissez les cellules du classeur Excel avec les paramètres appropriés et exécutez les fonctions fournies pour obtenir les prix des options et les grecs.
 
   
