@@ -22,34 +22,38 @@ class Node:
         self.prob_forward_mid_neighbor = None
         self.prob_forward_down_neighbor = None
 
+    ########################### Générations ###########################
+
     def create_forward_neighbors(self):
 
+        # Récupération de la valeur de deltaT et alpha pour ce step
         deltaT, alpha = self.get_deltaT_alpha()
 
+        # Création du Forward Mid
         self.forward_mid_neighbor = Node(self.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step + 1), self.step + 1, self.tree)
         self.forward_mid_neighbor.backward_neighbor = self
 
+        # Création du Forward Up
         self.forward_up_neighbor = Node(self.forward_mid_neighbor.value * alpha, self.step + 1, self.tree)
         self.forward_mid_neighbor.up_neighbor = self.forward_up_neighbor
         self.forward_up_neighbor.down_neighbor = self.forward_mid_neighbor
         
+        # Création du Forward Down
         self.forward_down_neighbor = Node(self.forward_mid_neighbor.value / alpha, self.step + 1, self.tree)
         self.forward_mid_neighbor.down_neighbor = self.forward_down_neighbor
         self.forward_down_neighbor.up_neighbor = self.forward_mid_neighbor
 
+        # Calcul des probabilités
         self.compute_probabilities()
-        
-    def monomial(self):
-        self.forward_down_neighbor = None
-        self.forward_up_neighbor = None
-        self.prob_forward_mid_neighbor = 1.0
 
     def generate_upper_neighbors(self):
 
         deltaT, alpha = self.get_deltaT_alpha()
 
+        # Stockage du tronc
         trunc = self
 
+        # Initialisation de la variable Forward qu'on va utiliser pour naviguer vers le haut
         actual_forward_up_node = self.forward_up_neighbor
 
         while self.up_neighbor is not None:
@@ -80,6 +84,7 @@ class Node:
 
             actual_forward_up_node = actual_forward_up_node.up_neighbor
 
+        # On remet le tronc sur self
         self = trunc
 
     def generate_lower_neighbors(self):
@@ -119,6 +124,13 @@ class Node:
             actual_forward_down_node = actual_forward_down_node.down_neighbor
 
         self = trunc
+        
+    def monomial(self):
+        self.forward_down_neighbor = None
+        self.forward_up_neighbor = None
+        self.prob_forward_mid_neighbor = 1.0
+
+    ########################### Calculs ###########################
 
     def compute_option_price(self):
 
@@ -176,6 +188,8 @@ class Node:
         alpha = math.exp(self.tree.market.sigma * math.sqrt(3 * deltaT))
         return deltaT, alpha
 
+    ########################### Dunders ###########################
+
     def __repr__(self):
         prob_up = f"{self.prob_forward_up_neighbor:.5f}" if self.prob_forward_up_neighbor is not None else ""
         prob_mid = f"{self.prob_forward_mid_neighbor:.5f}" if self.prob_forward_mid_neighbor is not None else ""
@@ -191,7 +205,8 @@ class Node:
 
     def __str__(self):
         return f"v={self.value:.5f}, step={self.step}, op={self.option_price:.5f}"
-    ############################## LIGHT VERSION ####################################
+    
+    ############################## Version Light ####################################
 
     def light_forward_neighbor(self):
 
@@ -199,7 +214,7 @@ class Node:
 
         self.forward_mid_neighbor = Node(self.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step + 1), self.step + 1, self.tree)
         self.forward_mid_neighbor.backward_neighbor = self
-
+    
     def light_generating_neighbors(self, NbSigma=5.63):
 
         self.step -= 1
@@ -214,56 +229,69 @@ class Node:
             actual_forward_up_node = self.forward_mid_neighbor.up_neighbor
             actual_forward_down_node = self.forward_mid_neighbor.down_neighbor
 
-        k = min(self.step + 1, math.ceil(NbSigma * math.sqrt((self.step + 1) / 3)))
-
+        k_up = k_down = min(self.step + 1, math.ceil(NbSigma * math.sqrt((self.step + 1) / 3)))
+        i = j = 1
         if trunc.step == self.tree.N:
             trunc.option_price = trunc.tree.option.payoff(trunc.value)
-        
-        for _ in range(1, k):
+
+        while i < k_up:
 
             current_up_node.up_neighbor = Node(current_up_node.value * alpha, current_up_node.step, current_up_node.tree)
             current_up_node.up_neighbor.down_neighbor = current_up_node
 
-            current_down_node.down_neighbor = Node(current_down_node.value / alpha, current_down_node.step, current_down_node.tree)
-            current_down_node.down_neighbor.up_neighbor = current_down_node
-            
             if trunc.step == self.tree.N:
-    
                 current_up_node.up_neighbor.option_price = current_up_node.up_neighbor.tree.option.payoff(current_up_node.up_neighbor.value)
-                current_down_node.down_neighbor.option_price = current_down_node.down_neighbor.tree.option.payoff(current_down_node.down_neighbor.value)
+            else:
+                if current_up_node.up_neighbor is not None:
+                    expected_mid_value_for_up = current_up_node.up_neighbor.value * math.exp(current_up_node.tree.market.rate * deltaT) - current_up_node.tree.dividend_value(self.step + 1)
+                    if expected_mid_value_for_up < actual_forward_up_node.value * (1 + alpha) / 2 and expected_mid_value_for_up > actual_forward_up_node.value * (1 + 1 / alpha) / 2:
 
-            elif current_up_node.up_neighbor is not None:
-                
-                expected_mid_value_for_up = current_up_node.up_neighbor.value * math.exp(current_up_node.tree.market.rate * deltaT) - current_up_node.tree.dividend_value(self.step + 1)
-                if expected_mid_value_for_up < actual_forward_up_node.value * (1 + alpha) / 2 and expected_mid_value_for_up > actual_forward_up_node.value * (1 + 1 / alpha) / 2:
+                        current_up_node.update_forward_neighbors(direction='up')
 
-                    current_up_node.update_forward_neighbors(direction='up')
-
-                    current_up_node.up_neighbor.compute_probabilities()
-                    current_up_node.up_neighbor.compute_option_price()
-                    current_up_node.up_neighbor.delete_old_nodes()
-
-                actual_forward_up_node = actual_forward_up_node.up_neighbor
-
-            elif current_down_node.down_neighbor is not None:
+                        current_up_node.up_neighbor.compute_probabilities()
+                        current_up_node.up_neighbor.compute_option_price()
+                        current_up_node.up_neighbor.delete_old_nodes()
+                    else:
+                        k_up += 1
                     
-                expected_mid_value_for_down = current_down_node.down_neighbor.value * math.exp(current_up_node.tree.market.rate * deltaT) - current_down_node.tree.dividend_value(self.step + 1)
-                if expected_mid_value_for_down <= actual_forward_down_node.value * (1 + alpha) / 2 and expected_mid_value_for_down >= actual_forward_down_node.value * (1 + 1 / alpha) / 2:
- 
-                    current_down_node.update_forward_neighbors(direction='down')
-
-                    current_down_node.down_neighbor.compute_probabilities()
-                    current_down_node.down_neighbor.compute_option_price()
-                    current_down_node.down_neighbor.delete_old_nodes()
-                
-                actual_forward_down_node = actual_forward_down_node.down_neighbor
+                    if actual_forward_up_node.up_neighbor is None:
+                        break
+                    actual_forward_up_node = actual_forward_up_node.up_neighbor
 
             current_up_node = current_up_node.up_neighbor
-            current_down_node = current_down_node.down_neighbor
+            i += 1
 
+        while j < k_down:
+
+            current_down_node.down_neighbor = Node(current_down_node.value / alpha, current_down_node.step, current_down_node.tree)
+            current_down_node.down_neighbor.up_neighbor = current_down_node
+
+            if trunc.step == self.tree.N:
+                current_down_node.down_neighbor.option_price = current_down_node.down_neighbor.tree.option.payoff(current_down_node.down_neighbor.value)
+            else:
+                if current_down_node.down_neighbor is not None:
+                        
+                    expected_mid_value_for_down = current_down_node.down_neighbor.value * math.exp(current_up_node.tree.market.rate * deltaT) - current_down_node.tree.dividend_value(self.step + 1)
+                    if expected_mid_value_for_down <= actual_forward_down_node.value * (1 + alpha) / 2 and expected_mid_value_for_down >= actual_forward_down_node.value * (1 + 1 / alpha) / 2:
+  
+                        current_down_node.update_forward_neighbors(direction='down')
+
+                        current_down_node.down_neighbor.compute_probabilities()
+                        current_down_node.down_neighbor.compute_option_price()
+                        current_down_node.down_neighbor.delete_old_nodes()
+                    else:
+                        k_down += 1
+                    
+                    if actual_forward_down_node.down_neighbor is None:
+                        break
+                    actual_forward_down_node = actual_forward_down_node.down_neighbor
+
+            current_down_node = current_down_node.down_neighbor
+            j += 1
         self = trunc
-        
+       
     def update_forward_neighbors(self, direction):
+
         if direction == 'up':
             self.up_neighbor.forward_down_neighbor = self.forward_mid_neighbor
             self.up_neighbor.forward_mid_neighbor = self.forward_mid_neighbor.up_neighbor
@@ -275,9 +303,7 @@ class Node:
                 self.down_neighbor.forward_down_neighbor = self.forward_mid_neighbor.down_neighbor.down_neighbor
             self.down_neighbor.forward_mid_neighbor = self.forward_mid_neighbor.down_neighbor
             self.down_neighbor.forward_up_neighbor = self.forward_mid_neighbor
-
         
-
     def delete_old_nodes(self):
 
         if self.forward_mid_neighbor is not None:
@@ -304,76 +330,68 @@ class Node:
         self.compute_option_price()
         self.delete_old_nodes()
 
-    """
-    def light_up_neighbors(self):
+    '''
+    def light_generating_neighbors(self, NbSigma=5.63):
+
         self.step -= 1
         deltaT, alpha = self.get_deltaT_alpha()
         self.step += 1
+
         trunc = self
+        current_up_node = self
+        current_down_node = self
 
-        k = min(self.step + 1, math.ceil(4 * math.sqrt(self.step + 1 / 3)))
-         # Arrondir à la valeur supérieure et convertir en entier
-        print(k)
+        if trunc.step != self.tree.N:
+            actual_forward_up_node = self.forward_mid_neighbor.up_neighbor
+            actual_forward_down_node = self.forward_mid_neighbor.down_neighbor
 
-        for _ in range(1, k, 1):
+        k = min(self.step + 1, math.ceil(NbSigma * math.sqrt((self.step + 1) / 3)))
 
-            self.up_neighbor = Node(self.value * alpha, self.step, self.tree)
-            self.up_neighbor.down_neighbor = self
+        if trunc.step == self.tree.N:
+            trunc.option_price = trunc.tree.option.payoff(trunc.value)
 
-            if self.up_neighbor.step == self.tree.N and self.up_neighbor is not None:
+        for _ in range(1, k):
 
-                self.option_price = self.tree.option.payoff(self.value)
-                self.up_neighbor.option_price = self.up_neighbor.tree.option.payoff(self.up_neighbor.value)
-            
-            elif self.up_neighbor is not None:
+            current_up_node.up_neighbor = Node(current_up_node.value * alpha, current_up_node.step, current_up_node.tree)
+            current_up_node.up_neighbor.down_neighbor = current_up_node
 
-                self.update_forward_neighbors(direction='up')
+            current_down_node.down_neighbor = Node(current_down_node.value / alpha, current_down_node.step, current_down_node.tree)
+            current_down_node.down_neighbor.up_neighbor = current_down_node
 
-                self.up_neighbor.compute_probabilities()
-                self.up_neighbor.compute_option_price()
+            if trunc.step == self.tree.N:
+    
+                current_up_node.up_neighbor.option_price = current_up_node.up_neighbor.tree.option.payoff(current_up_node.up_neighbor.value)
+                current_down_node.down_neighbor.option_price = current_down_node.down_neighbor.tree.option.payoff(current_down_node.down_neighbor.value)
 
-            self = self.up_neighbor
+            else:
+                if current_up_node.up_neighbor is not None:
+                    
+                    expected_mid_value_for_up = current_up_node.up_neighbor.value * math.exp(current_up_node.tree.market.rate * deltaT) - current_up_node.tree.dividend_value(self.step + 1)
+                    if expected_mid_value_for_up < actual_forward_up_node.value * (1 + alpha) / 2 and expected_mid_value_for_up > actual_forward_up_node.value * (1 + 1 / alpha) / 2:
+
+                        current_up_node.update_forward_neighbors(direction='up')
+
+                        current_up_node.up_neighbor.compute_probabilities()
+                        current_up_node.up_neighbor.compute_option_price()
+                        #current_up_node.up_neighbor.delete_old_nodes()
+
+                    actual_forward_up_node = actual_forward_up_node.up_neighbor
+
+                if current_down_node.down_neighbor is not None:
+                        
+                    expected_mid_value_for_down = current_down_node.down_neighbor.value * math.exp(current_up_node.tree.market.rate * deltaT) - current_down_node.tree.dividend_value(self.step + 1)
+                    if expected_mid_value_for_down <= actual_forward_down_node.value * (1 + alpha) / 2 and expected_mid_value_for_down >= actual_forward_down_node.value * (1 + 1 / alpha) / 2:
+  
+                        current_down_node.update_forward_neighbors(direction='down')
+
+                        current_down_node.down_neighbor.compute_probabilities()
+                        current_down_node.down_neighbor.compute_option_price()
+                        #current_down_node.down_neighbor.delete_old_nodes()
+                    
+                    actual_forward_down_node = actual_forward_down_node.down_neighbor
+
+            current_up_node = current_up_node.up_neighbor
+            current_down_node = current_down_node.down_neighbor
 
         self = trunc
-
-    def light_lower_neighbors(self):
-        self.step -= 1
-        deltaT, alpha = self.get_deltaT_alpha()
-        self.step += 1
-        trunc = self
-
-        k = min(self.step + 1, math.ceil(4 * math.sqrt(self.step + 1 / 3)))
-        
-        for _ in range(1, k, 1):
-            
-            self.down_neighbor = Node(self.value / alpha, self.step, self.tree)
-            self.down_neighbor.up_neighbor = self
-            
-            if self.down_neighbor.step == self.tree.N and self.down_neighbor is not None:
-
-                self.down_neighbor.option_price = self.down_neighbor.tree.option.payoff(self.down_neighbor.value)
-
-            elif self.down_neighbor is not None:
-
-                expected_mid_value = self.down_neighbor.value * math.exp(self.tree.market.rate * deltaT) - self.tree.dividend_value(self.step + 1)
-                if expected_mid_value <= self.forward_mid_neighbor.down_neighbor.value * (1 + alpha) / 2 and expected_mid_value >= self.forward_mid_neighbor.down_neighbor.value * (1 + 1 / alpha) / 2:
- 
-                    self.update_forward_neighbors(direction='down')
-
-                    self.down_neighbor.compute_probabilities()
-                    self.down_neighbor.compute_option_price()
-
-
-
-            self = self.down_neighbor
-
-        self = trunc
-    """
-        
-    """
-    def payoff(self):
-
-        if self.tree.option.type == "call":
-            self.option_price = max(self.value - self.tree.option.K, 0)
-        else:
-            self.option_price = max(self.tree.option.K - self.value, 0)"""
+    ''' 
