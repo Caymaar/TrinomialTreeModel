@@ -37,6 +37,9 @@ maturity = st.sidebar.date_input('Select an expiration date', value=date.today()
 T = (maturity - today).days / 365
 ex_div_date = (dividend_date - today).days / 365
 
+######################
+status = False
+
 # Menu de navigation
 selected_tab = option_menu(
     menu_title=None,
